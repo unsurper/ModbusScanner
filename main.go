@@ -4,6 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/goburrow/modbus"
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	log "github.com/sirupsen/logrus"
+	"io"
+	"os"
+	"time"
 )
 
 const (
@@ -31,6 +36,23 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+	path := "log/GBlog"
+	// 下面配置日志每隔 10 分钟轮转一个新文件，保留最近 3 分钟的日志文件，多余的自动清理掉。
+	writer, err := rotatelogs.New(
+		path+".%Y%m%d%H%M"+".log",
+		rotatelogs.WithLinkName(path),
+		//rotatelogs.WithMaxAge(time.Duration(180)*time.Second),
+		rotatelogs.WithRotationTime(time.Duration(600)*time.Second),
+	)
+	writers := []io.Writer{writer, os.Stdout}
+	fileAndStdoutWriter := io.MultiWriter(writers...)
+	if err == nil {
+		log.SetOutput(fileAndStdoutWriter)
+	} else {
+		log.Info("failed to log to file.")
+	}
 }
 
 func main() {
@@ -39,100 +61,100 @@ func main() {
 		handler := modbus.NewRTUClientHandler(*SerialNamePtr)
 		handler.BaudRate = *BaudPtr
 		if *DataBitsPtr < 5 || *DataBitsPtr > 8 {
-			fmt.Println("DataBitsPtr ERR :", *DataBitsPtr)
+			log.Errorln("DataBitsPtr ERR :", *DataBitsPtr)
 			return
 		}
 		handler.DataBits = *DataBitsPtr
 		if *ParityPtr != "N" && *ParityPtr != "E" && *ParityPtr != "O" {
-			fmt.Println("ParityPtr ERR :", *ParityPtr)
+			log.Errorln("ParityPtr ERR :", *ParityPtr)
 			return
 		}
 		handler.Parity = *ParityPtr
 		if *StopBitsPtr < 1 || *StopBitsPtr > 2 {
-			fmt.Println("StopBitsPtr ERR :", *StopBitsPtr)
+			log.Errorln("StopBitsPtr ERR :", *StopBitsPtr)
 			return
 		}
 		handler.StopBits = *StopBitsPtr
 		handler.Timeout = *ReadTimeoutPtr
 		if *SlaveIdPtrA > 255 || *SlaveIdPtrB > 255 {
-			fmt.Println("SlaveIdPtr ERR :", byte(*SlaveIdPtrA), byte(*SlaveIdPtrB))
+			log.Errorln("SlaveIdPtr ERR :", byte(*SlaveIdPtrA), byte(*SlaveIdPtrB))
 			return
 		}
 		for i := *SlaveIdPtrA; i <= *SlaveIdPtrB; i++ {
 			handler.SlaveId = byte(i)
 			err := handler.Connect()
 			if err != nil {
-				fmt.Println("Connect ERR :", err)
+				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
 			client := modbus.NewClient(handler)
 			_, err = client.ReadCoils(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadCoils ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadCoils ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 			_, err = client.ReadDiscreteInputs(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 			_, err = client.ReadInputRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadInputRegisters ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadInputRegisters ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 			_, err = client.ReadHoldingRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 		}
 	} else if *ModPtr == "TCP" {
 		handler := modbus.NewTCPClientHandler(*SerialNamePtr)
 		handler.Timeout = *ReadTimeoutPtr
 		if *SlaveIdPtrA > 255 || *SlaveIdPtrB > 255 {
-			fmt.Println("SlaveIdPtr ERR :", byte(*SlaveIdPtrA), byte(*SlaveIdPtrB))
+			log.Errorln("SlaveIdPtr ERR :", byte(*SlaveIdPtrA), byte(*SlaveIdPtrB))
 			return
 		}
 		for i := *SlaveIdPtrA; i <= *SlaveIdPtrB; i++ {
 			handler.SlaveId = byte(i)
 			err := handler.Connect()
 			if err != nil {
-				fmt.Println("Connect ERR :", err)
+				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
 			client := modbus.NewClient(handler)
 			_, err = client.ReadCoils(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadCoils ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadCoils ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 			_, err = client.ReadDiscreteInputs(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 			_, err = client.ReadInputRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadInputRegisters ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadInputRegisters ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 			_, err = client.ReadHoldingRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
+				log.Errorln("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
 			} else {
-				fmt.Println("SlaveId : ", i, Success)
+				log.Info("SlaveId : ", i, Success)
 			}
 		}
 	} else {
-		fmt.Println("ModPtr ERR :", *ModPtr)
+		log.Errorln("ModPtr ERR :", *ModPtr)
 		return
 	}
 }
