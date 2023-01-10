@@ -17,12 +17,12 @@ const (
 
 var (
 	Address  uint16 = 1
-	Quantity uint16 = 3
+	Quantity uint16 = 1
 	// SerialNamePtr 串口号 BaudPtr 波特率 ReadTimeoutPtr 读取时间
-	ModPtr         = flag.String("m", "RTU", "MOD")
-	SerialNamePtr  = flag.String("sn", "COM1", "SerialName")
-	BaudPtr        = flag.Int("b", 9600, "Baud")
-	ReadTimeoutPtr = flag.Duration("rt", 2000000000, "ReadTimeout")
+	ModPtr         = flag.String("m", "RTU", "MOD (TCP/RTU)")
+	SerialNamePtr  = flag.String("sn", "COM1", "SerialName (COM1.../localhost:502)")
+	BaudPtr        = flag.Int("b", 9600, "Baud (1200/2400/4800/9600...)")
+	ReadTimeoutPtr = flag.Duration("rt", 2000000000, "ReadTimeout (1s/2s...)")
 	SlaveIdPtrA    = flag.Uint("ida", 1, "SlaveIdA")
 	SlaveIdPtrB    = flag.Uint("idb", 3, "SlaveIdB")
 	DataBitsPtr    = flag.Int("d", 8, "Data bits: 5, 6, 7 or 8")
