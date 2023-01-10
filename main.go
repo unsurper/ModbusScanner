@@ -17,14 +17,14 @@ const (
 
 var (
 	Address  uint16 = 1
-	Quantity uint16 = 1
+	Quantity uint16 = 3
 	// SerialNamePtr 串口号 BaudPtr 波特率 ReadTimeoutPtr 读取时间
 	ModPtr         = flag.String("m", "RTU", "MOD")
 	SerialNamePtr  = flag.String("sn", "COM1", "SerialName")
-	BaudPtr        = flag.Int("b", 2400, "Baud")
-	ReadTimeoutPtr = flag.Duration("rt", 3000000000, "ReadTimeout")
+	BaudPtr        = flag.Int("b", 9600, "Baud")
+	ReadTimeoutPtr = flag.Duration("rt", 2000000000, "ReadTimeout")
 	SlaveIdPtrA    = flag.Uint("ida", 1, "SlaveIdA")
-	SlaveIdPtrB    = flag.Uint("idb", 10, "SlaveIdB")
+	SlaveIdPtrB    = flag.Uint("idb", 3, "SlaveIdB")
 	DataBitsPtr    = flag.Int("d", 8, "Data bits: 5, 6, 7 or 8")
 	ParityPtr      = flag.String("p", "N", "Parity: N - None, E - Even, O - Odd")
 	StopBitsPtr    = flag.Int("sb", 1, "Stop bits: 1 or 2")
@@ -80,38 +80,14 @@ func main() {
 			log.Errorln("SlaveIdPtr ERR :", byte(*SlaveIdPtrA), byte(*SlaveIdPtrB))
 			return
 		}
-		for i := *SlaveIdPtrA; i <= *SlaveIdPtrB; i++ {
-			handler.SlaveId = byte(i)
+		for SlaveId := *SlaveIdPtrA; SlaveId <= *SlaveIdPtrB; SlaveId++ {
+			handler.SlaveId = byte(SlaveId)
 			err := handler.Connect()
 			if err != nil {
 				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
-			client := modbus.NewClient(handler)
-			_, err = client.ReadCoils(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadCoils ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
-			_, err = client.ReadDiscreteInputs(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
-			_, err = client.ReadInputRegisters(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadInputRegisters ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
-			_, err = client.ReadHoldingRegisters(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
+			Scanner(handler, SlaveId)
 		}
 	} else if *ModPtr == "TCP" {
 		handler := modbus.NewTCPClientHandler(*SerialNamePtr)
@@ -120,41 +96,38 @@ func main() {
 			log.Errorln("SlaveIdPtr ERR :", byte(*SlaveIdPtrA), byte(*SlaveIdPtrB))
 			return
 		}
-		for i := *SlaveIdPtrA; i <= *SlaveIdPtrB; i++ {
-			handler.SlaveId = byte(i)
+		for SlaveId := *SlaveIdPtrA; SlaveId <= *SlaveIdPtrB; SlaveId++ {
+			handler.SlaveId = byte(SlaveId)
 			err := handler.Connect()
 			if err != nil {
 				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
-			client := modbus.NewClient(handler)
-			_, err = client.ReadCoils(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadCoils ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
-			_, err = client.ReadDiscreteInputs(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
-			_, err = client.ReadInputRegisters(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadInputRegisters ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
-			_, err = client.ReadHoldingRegisters(Address, Quantity)
-			if err != nil {
-				log.Errorln("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
-			} else {
-				log.Info("SlaveId : ", i, Success)
-			}
+			Scanner(handler, SlaveId)
 		}
 	} else {
 		log.Errorln("ModPtr ERR :", *ModPtr)
 		return
+	}
+}
+
+func Scanner(handler modbus.ClientHandler, SlaveId uint) {
+	client := modbus.NewClient(handler)
+
+	result, err := client.ReadCoils(Address, Quantity)
+	SlaveError(result, "ReadCoils", SlaveId, err)
+	result, err = client.ReadDiscreteInputs(Address, Quantity)
+	SlaveError(result, "ReadDiscreteInputs", SlaveId, err)
+	result, err = client.ReadInputRegisters(Address, Quantity)
+	SlaveError(result, "ReadInputRegisters", SlaveId, err)
+	result, err = client.ReadHoldingRegisters(Address, Quantity)
+	SlaveError(result, "ReadHoldingRegisters", SlaveId, err)
+}
+
+func SlaveError(result []byte, modname string, SlaveId uint, err error) {
+	if err != nil {
+		log.Errorln("SlaveId : ", SlaveId, modname, "ERR :", err)
+	} else {
+		log.Infoln("SlaveId :", SlaveId, Success, "Result:", result)
 	}
 }
