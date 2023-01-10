@@ -11,6 +11,8 @@ const (
 )
 
 var (
+	Address  uint16 = 1
+	Quantity uint16 = 1
 	// SerialNamePtr 串口号 BaudPtr 波特率 ReadTimeoutPtr 读取时间
 	ModPtr         = flag.String("m", "RTU", "MOD")
 	SerialNamePtr  = flag.String("sn", "COM1", "SerialName")
@@ -64,33 +66,29 @@ func main() {
 			}
 			defer handler.Close()
 			client := modbus.NewClient(handler)
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadCoils(1, 1)
+			_, err = client.ReadCoils(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadCoils ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadCoils ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadDiscreteInputs(1, 1)
+			_, err = client.ReadDiscreteInputs(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadDiscreteInputs ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadInputRegisters(1, 1)
+			_, err = client.ReadInputRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadInputRegisters ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadInputRegisters ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadHoldingRegisters(1, 1)
+			_, err = client.ReadHoldingRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadHoldingRegisters ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
 		}
 	} else if *ModPtr == "TCP" {
@@ -108,35 +106,29 @@ func main() {
 			}
 			defer handler.Close()
 			client := modbus.NewClient(handler)
-
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadCoils(1, 1)
+			_, err = client.ReadCoils(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadCoils ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadCoils ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
-
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadDiscreteInputs(1, 1)
+			_, err = client.ReadDiscreteInputs(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadDiscreteInputs ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadDiscreteInputs ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadInputRegisters(1, 1)
+			_, err = client.ReadInputRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadInputRegisters ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadInputRegisters ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
-			fmt.Printf("SlaveId : %d ", i)
-			_, err = client.ReadHoldingRegisters(1, 1)
+			_, err = client.ReadHoldingRegisters(Address, Quantity)
 			if err != nil {
-				fmt.Println("ReadHoldingRegisters ERR :", err)
+				fmt.Println("SlaveId : ", i, "ReadHoldingRegisters ERR :", err)
 			} else {
-				fmt.Println(Success)
+				fmt.Println("SlaveId : ", i, Success)
 			}
 		}
 	} else {
