@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/goburrow/modbus"
+	"github.com/gosuri/uitable"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -53,9 +55,14 @@ func init() {
 	} else {
 		log.Info("failed to log to file.")
 	}
+
 }
 
 func main() {
+	//Table Init
+	Table := uitable.New()
+	Table.MaxColWidth = 50
+	Table.AddRow("ADDRESS", "ReadCoils", "ReadDiscreteInputs", "ReadInputRegisters", "ReadHoldingRegisters")
 	// Modbus RTU/ASCII
 	if *ModPtr == "RTU" {
 		handler := modbus.NewRTUClientHandler(*SerialNamePtr)
@@ -87,7 +94,7 @@ func main() {
 				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
-			Scanner(handler, SlaveId)
+			Scanner(handler, SlaveId, Table)
 		}
 	} else if *ModPtr == "TCP" {
 		handler := modbus.NewTCPClientHandler(*SerialNamePtr)
@@ -103,31 +110,38 @@ func main() {
 				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
-			Scanner(handler, SlaveId)
+			Scanner(handler, SlaveId, Table)
 		}
 	} else {
 		log.Errorln("ModPtr ERR :", *ModPtr)
 		return
 	}
+	fmt.Println(Table)
 }
 
-func Scanner(handler modbus.ClientHandler, SlaveId uint) {
+func Scanner(handler modbus.ClientHandler, SlaveId uint, Table *uitable.Table) {
+	//创建客户端
 	client := modbus.NewClient(handler)
-
+	var tableflag []interface{}
+	tableflag = append(tableflag, SlaveId)
 	result, err := client.ReadCoils(Address, Quantity)
-	SlaveError(result, "ReadCoils", SlaveId, err)
+	tableflag = SlaveError(result, "ReadCoils", SlaveId, err, tableflag)
 	result, err = client.ReadDiscreteInputs(Address, Quantity)
-	SlaveError(result, "ReadDiscreteInputs", SlaveId, err)
+	tableflag = SlaveError(result, "ReadDiscreteInputs", SlaveId, err, tableflag)
 	result, err = client.ReadInputRegisters(Address, Quantity)
-	SlaveError(result, "ReadInputRegisters", SlaveId, err)
+	tableflag = SlaveError(result, "ReadInputRegisters", SlaveId, err, tableflag)
 	result, err = client.ReadHoldingRegisters(Address, Quantity)
-	SlaveError(result, "ReadHoldingRegisters", SlaveId, err)
+	tableflag = SlaveError(result, "ReadHoldingRegisters", SlaveId, err, tableflag)
+	Table.AddRow(tableflag[0], tableflag[1], tableflag[2], tableflag[3], tableflag[4])
 }
 
-func SlaveError(result []byte, modname string, SlaveId uint, err error) {
+func SlaveError(result []byte, modname string, SlaveId uint, err error, Table []interface{}) []interface{} {
 	if err != nil {
 		log.Errorln("SlaveId : ", SlaveId, modname, "ERR :", err)
+		Table = append(Table, color.RedString("Fail"))
 	} else {
 		log.Infoln("SlaveId :", SlaveId, Success, "Result:", result)
+		Table = append(Table, color.GreenString("Success"))
 	}
+	return Table
 }
