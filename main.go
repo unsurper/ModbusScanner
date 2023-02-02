@@ -1,15 +1,16 @@
 package main
 
 import (
+	"encoding/binary"
 	"flag"
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/goburrow/modbus"
-	"github.com/gosuri/uitable"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -18,8 +19,9 @@ const (
 )
 
 var (
-	Address  uint16 = 1
-	Quantity uint16 = 1
+	//Address 开始地址位 Quantity 读取寄存器数量
+	Address  = flag.Int("a", 0, "Address")
+	Quantity = flag.Int("q", 4, "Quantity")
 	// SerialNamePtr 串口号 BaudPtr 波特率 ReadTimeoutPtr 读取时间
 	ModPtr         = flag.String("m", "RTU", "MOD (TCP/RTU)")
 	SerialNamePtr  = flag.String("sn", "COM1", "SerialName (COM1.../localhost:502)")
@@ -33,6 +35,7 @@ var (
 )
 
 func init() {
+
 	flag.Usage = func() {
 		fmt.Println("Usage:ModbusScannerDemo")
 		flag.PrintDefaults()
@@ -59,10 +62,14 @@ func init() {
 }
 
 func main() {
+	start := time.Now() // 获取当前时间
 	//Table Init
-	Table := uitable.New()
-	Table.MaxColWidth = 50
-	Table.AddRow("ADDRESS", "ReadCoils", "ReadDiscreteInputs", "ReadInputRegisters", "ReadHoldingRegisters")
+	Table := tablewriter.NewWriter(os.Stdout)
+	header := []string{"ADDRESS", "ReadCoils 0x", "ReadDiscreteInputs 1x", "ReadInputRegisters 3x", "ReadHoldingRegisters 4x"}
+	Table.SetHeader(header)
+	Table.SetAutoMergeCellsByColumnIndex([]int{0})
+	Table.SetRowLine(true)
+
 	// Modbus RTU/ASCII
 	if *ModPtr == "RTU" {
 		handler := modbus.NewRTUClientHandler(*SerialNamePtr)
@@ -116,32 +123,45 @@ func main() {
 		log.Errorln("ModPtr ERR :", *ModPtr)
 		return
 	}
-	fmt.Println(Table)
+
+	Table.SetFooter([]string{"", "", "", "Time-consuming", time.Since(start).String()})
+	Table.Render()
 }
 
-func Scanner(handler modbus.ClientHandler, SlaveId uint, Table *uitable.Table) {
+func Scanner(handler modbus.ClientHandler, SlaveId uint, Table *tablewriter.Table) {
 	//创建客户端
 	client := modbus.NewClient(handler)
-	var tableflag []interface{}
-	tableflag = append(tableflag, SlaveId)
-	result, err := client.ReadCoils(Address, Quantity)
-	tableflag = SlaveError(result, "ReadCoils", SlaveId, err, tableflag)
-	result, err = client.ReadDiscreteInputs(Address, Quantity)
-	tableflag = SlaveError(result, "ReadDiscreteInputs", SlaveId, err, tableflag)
-	result, err = client.ReadInputRegisters(Address, Quantity)
-	tableflag = SlaveError(result, "ReadInputRegisters", SlaveId, err, tableflag)
-	result, err = client.ReadHoldingRegisters(Address, Quantity)
-	tableflag = SlaveError(result, "ReadHoldingRegisters", SlaveId, err, tableflag)
-	Table.AddRow(tableflag[0], tableflag[1], tableflag[2], tableflag[3], tableflag[4])
+	var tableflag []string
+	var tabletwins []string
+	tableflag = append(tableflag, strconv.Itoa(int(SlaveId)))
+	tabletwins = append(tabletwins, strconv.Itoa(int(SlaveId)))
+	result, err := client.ReadCoils(uint16(*Address), uint16(*Quantity))
+	tableflag, tabletwins = SlaveError(result, "ReadCoils", SlaveId, err, tableflag, tabletwins)
+	result, err = client.ReadDiscreteInputs(uint16(*Address), uint16(*Quantity))
+	tableflag, tabletwins = SlaveError(result, "ReadDiscreteInputs", SlaveId, err, tableflag, tabletwins)
+	result, err = client.ReadInputRegisters(uint16(*Address), uint16(*Quantity))
+	tableflag, tabletwins = SlaveError(result, "ReadInputRegisters", SlaveId, err, tableflag, tabletwins)
+	result, err = client.ReadHoldingRegisters(uint16(*Address), uint16(*Quantity))
+	tableflag, tabletwins = SlaveError(result, "ReadHoldingRegisters", SlaveId, err, tableflag, tabletwins)
+	Table.Append(tableflag)
+	Table.Append(tabletwins)
 }
 
-func SlaveError(result []byte, modname string, SlaveId uint, err error, Table []interface{}) []interface{} {
+func SlaveError(result []byte, modname string, SlaveId uint, err error, Table []string, Twins []string) ([]string, []string) {
 	if err != nil {
 		log.Errorln("SlaveId : ", SlaveId, modname, "ERR :", err)
-		Table = append(Table, color.RedString("Fail"))
+		Table = append(Table, "Fail")
+		Twins = append(Twins, err.Error())
 	} else {
 		log.Infoln("SlaveId :", SlaveId, Success, "Result:", result)
-		Table = append(Table, color.GreenString("Success"))
+		Table = append(Table, "Success")
+		Twins = append(Twins, TransferData(result))
 	}
-	return Table
+	return Table, Twins
+}
+
+func TransferData(value []byte) string {
+	data := float64(binary.BigEndian.Uint16(value))
+	sData := strconv.FormatUint(uint64(data), 10)
+	return sData
 }

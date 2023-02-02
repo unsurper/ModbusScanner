@@ -3,8 +3,9 @@ module ModbusScanner
 go 1.18
 
 require (
+	github.com/fatih/color v1.14.1
 	github.com/goburrow/modbus v0.1.0
-	github.com/gosuri/uitable v0.0.4
+	github.com/olekukonko/tablewriter v0.0.5
 )
 
 require (
@@ -14,7 +15,6 @@ require (
 )
 
 require (
-	github.com/fatih/color v1.14.1 // indirect
 	github.com/jonboulle/clockwork v0.3.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
