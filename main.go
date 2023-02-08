@@ -21,7 +21,7 @@ const (
 var (
 	//Address 开始地址位 Quantity 读取寄存器数量
 	Address  = flag.Int("a", 0, "Address")
-	Quantity = flag.Int("q", 4, "Quantity")
+	Quantity = flag.Int("q", 1, "Quantity")
 	// SerialNamePtr 串口号 BaudPtr 波特率 ReadTimeoutPtr 读取时间
 	ModPtr         = flag.String("m", "RTU", "MOD (TCP/RTU)")
 	SerialNamePtr  = flag.String("sn", "COM1", "SerialName (COM1.../localhost:502)")
@@ -101,7 +101,7 @@ func main() {
 				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
-			Scanner(handler, SlaveId, Table)
+			Scanner(modbus.RTUClient(*SerialNamePtr), SlaveId, Table)
 		}
 	} else if *ModPtr == "TCP" {
 		handler := modbus.NewTCPClientHandler(*SerialNamePtr)
@@ -117,7 +117,7 @@ func main() {
 				log.Errorln("Connect ERR :", err)
 			}
 			defer handler.Close()
-			Scanner(handler, SlaveId, Table)
+			Scanner(modbus.TCPClient(*SerialNamePtr), SlaveId, Table)
 		}
 	} else {
 		log.Errorln("ModPtr ERR :", *ModPtr)
@@ -128,9 +128,8 @@ func main() {
 	Table.Render()
 }
 
-func Scanner(handler modbus.ClientHandler, SlaveId uint, Table *tablewriter.Table) {
+func Scanner(client modbus.Client, SlaveId uint, Table *tablewriter.Table) {
 	//创建客户端
-	client := modbus.NewClient(handler)
 	var tableflag []string
 	var tabletwins []string
 	tableflag = append(tableflag, strconv.Itoa(int(SlaveId)))
@@ -155,7 +154,8 @@ func SlaveError(result []byte, modname string, SlaveId uint, err error, Table []
 	} else {
 		log.Infoln("SlaveId :", SlaveId, Success, "Result:", result)
 		Table = append(Table, "Success")
-		Twins = append(Twins, TransferData(result))
+		//TODO: result data to string.
+		Twins = append(Twins, string(result))
 	}
 	return Table, Twins
 }
